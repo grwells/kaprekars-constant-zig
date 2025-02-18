@@ -16,7 +16,9 @@ pub fn main() !void {
     //const int_b: i16 = try getFourDigitNum();
 
     const int_a: []u8 = try getFourDigitArr();
+    //std.debug.print("\n\tlist -> {d}", .{int_a[0..4]});
     const int_b: []u8 = try getFourDigitArr();
+    //std.debug.print("\n\tlist -> {any}", .{int_b[0..4]});
 
     _ = kaprekar(int_a, int_b);
 }
@@ -87,28 +89,52 @@ fn charArrayToInt(chars: *[5]u8) i16 {
     return val;
 }
 
+/// Swaps two elements of a slice using generic types.
+pub fn swap(comptime T: type, list: *[]T, index_a: usize, index_b: usize) []T {
+    std.debug.print("\n\tSWAP", .{});
+    std.debug.print("\n\t\tlist -> {any}", .{list});
+    const tmp_a = list[index_a];
+    const tmp_b = list[index_b];
+    list[index_a] = tmp_b;
+    list[index_b] = tmp_a;
+    std.debug.print("\n\t\tlist -> {any}", .{list});
+    return list;
+}
+
 /// Sorts a slice of digits into ascending or descending order using the
 /// bubble sort algorithm.
 pub fn bubbleSort(digits: []u8, ascending: bool) []u8 {
     std.debug.print("BUBBLE SORT \n\t(start, ascending={any}) -> {any}", .{ ascending, digits });
     if (ascending) {
-        std.debug.print("sort in ascending order", .{});
+        std.debug.print("\n\tsort in ascending order", .{});
         var swapped: bool = true;
         while (swapped) {
             swapped = false;
             for (0..digits.len - 1) |i| {
+                std.debug.print("\n\tcomparing - {any} vs. {any}", .{digits[i], digits[i+1]});
                 if (digits[i] > digits[i + 1]) {
+                    std.debug.print("\n\t\tlarger, swapping", .{});
                     // swap
-                    const tmp = digits[i];
-                    digits[i] = digits[i + 1];
+                    //std.debug.print("\n\t\tdigits[i] = {d}", .{digits[i]});
+                    const tmp: u8 = digits[i];
+                    const tmpb: u8 = digits[i+1];
+                    digits[i] = tmpb;
                     digits[i + 1] = tmp;
+                    //digits[i] = digits[i + 1];
+                    //digits[i+1] = tmp;
+                    //const cp_dig = swap(u8, digits[0..], i, i+1);
+                    //std.debug.print("\n\t\tcp_dig list -> {any}", .{cp_dig});
+                    std.debug.print("\n\t\tdigits[i] = {d}", .{digits[i]});
+                    std.debug.print("\n\t\tdigits[i+1] = {d}", .{digits[i + 1]});
                     // set flag
                     swapped = true;
-                }
+                } 
+                std.debug.print("\n\t\tlist -> {any}", .{digits});
+                break;
             }
         }
     } else {
-        std.debug.print("sort in descending order", .{});
+        std.debug.print("\n\tsort in descending order", .{});
     }
 
     std.debug.print("\n\t(end) -> {any}", .{digits});
@@ -123,7 +149,8 @@ pub fn kaprekar(a: []u8, b: []u8) bool {
     // sort a digits to descending
     const asc: []u8 = bubbleSort(a[0..4], true);
     // sort b digits to descending
-    const desc: []u8 = bubbleSort(b[0..4], false);
+    const desc: []u8 = b[0..4];
+    //const desc: []u8 = bubbleSort(b[0..4], false);
 
     kaprekar_iter(asc, desc);
 
