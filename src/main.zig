@@ -1,3 +1,24 @@
+const std = @import("std");
+
+/// This imports the separate module containing `root.zig`. Take a look in `build.zig` for details.
+const lib = @import("kaprekars_constant_lib");
+
+test "bubble sort ascending" {
+    var array = [_]u8{ 9, 2, 3, 7, 8, 1, 6, 5, 4 };
+    const slice = array[0..array.len];
+    const output = bubbleSort(slice, true);
+    std.debug.print("\n\t{any} vs. {any}", .{ slice, output });
+    try std.testing.expect(std.mem.eql(u8, slice, output));
+}
+
+test "bubble sort descending" {
+    var array = [_]u8{ 9, 2, 3, 7, 8, 1, 6, 5, 4 };
+    const slice = array[0..array.len];
+    const output = bubbleSort(slice, false);
+    std.debug.print("\n\t{any} vs. {any}", .{ slice, output });
+    try std.testing.expect(std.mem.eql(u8, slice, output));
+}
+
 pub fn main() !void {
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
 
@@ -16,61 +37,38 @@ pub fn main() !void {
     //const int_b: i16 = try getFourDigitNum();
 
     const int_a: []u8 = try getFourDigitArr();
-    //std.debug.print("\n\tlist -> {d}", .{int_a[0..4]});
     const int_b: []u8 = try getFourDigitArr();
-    //std.debug.print("\n\tlist -> {any}", .{int_b[0..4]});
+    std.debug.print("\n\tlist -> {any}", .{int_a});
+    std.debug.print("\n\tlist -> {any}", .{int_b});
 
     _ = kaprekar(int_a, int_b);
-}
-
-/// Get a four digit number from standard input.
-fn getFourDigitNum() !i16 {
-    // undefined means "unknown value", could be anything
-    // read only 5 characters -> xxxx\0
-    std.debug.print("Enter a four digit number [1000, 9999]:", .{});
-    var input: [5]u8 = undefined;
-    const stdout = std.io.getStdOut().writer();
-    const stdin = std.io.getStdIn().reader();
-
-    _ = stdin.readUntilDelimiter(&input, '\n') catch |err| {
-        std.debug.print("[DESCRIPTION] please enter 4 digit number, [1000, 9999]\n", .{});
-        return err;
-    };
-
-    // below is the same as -> x catch |err| return err;
-    try stdout.print("The user entered: {s}\n", .{input});
-    // convert to integer
-    return try std.fmt.parseInt(i16, input[0..4], 0);
 }
 
 /// Get a four digit number from standard input.
 fn getFourDigitArr() ![]u8 {
     // undefined means "unknown value", could be anything
     // read only 5 characters -> xxxx\0
-    std.debug.print("Enter a four digit number [1000, 9999]:", .{});
+    std.debug.print("\nEnter a four digit number [1000, 9999]:", .{});
+    // allocate array
     var input: [5]u8 = undefined;
     const stdout = std.io.getStdOut().writer();
     const stdin = std.io.getStdIn().reader();
 
     _ = stdin.readUntilDelimiter(&input, '\n') catch |err| {
-        std.debug.print("[DESCRIPTION] please enter 4 digit number, [1000, 9999]\n", .{});
+        std.debug.print("\n[DESCRIPTION] please enter 4 digit number, [1000, 9999]\n", .{});
         return err;
     };
 
     // below is the same as -> x catch |err| return err;
-    try stdout.print("The user entered: {s}\n", .{input});
+    try stdout.print("\nThe user entered: {s}\n", .{input});
 
-    // Convert to Integer
-    // allocate array of four unsigned integers
-    var output: []u8 = input[0..];
-
-    // fill output
-    for (input[0..4], 0..) |character, i| {
+    std.debug.print("\n\tinput = {any}", .{input});
+    for (0..input.len - 1) |index| {
         // input character to digit, base 10
-        output[i] = try std.fmt.charToDigit(character, 10);
+        input[index] = try std.fmt.charToDigit(input[index], 10);
     }
-
-    return output;
+    std.debug.print("\n\toutput = {any}", .{input});
+    return input[0 .. input.len - 1];
 }
 
 /// A less elegant but effective way to convert a four character
@@ -103,56 +101,62 @@ pub fn swap(comptime T: type, list: *[]T, index_a: usize, index_b: usize) []T {
 
 /// Sorts a slice of digits into ascending or descending order using the
 /// bubble sort algorithm.
-pub fn bubbleSort(digits: []u8, ascending: bool) []u8 {
+pub fn bubbleSort(digits: []u8, ascending: bool) void {
     std.debug.print("BUBBLE SORT \n\t(start, ascending={any}) -> {any}", .{ ascending, digits });
+    // copy input
     if (ascending) {
         std.debug.print("\n\tsort in ascending order", .{});
         var swapped: bool = true;
         while (swapped) {
             swapped = false;
-            for (0..digits.len - 1) |i| {
-                std.debug.print("\n\tcomparing - {any} vs. {any}", .{digits[i], digits[i+1]});
-                if (digits[i] > digits[i + 1]) {
+            for (0..digits.len - 1) |index| {
+                std.debug.print("\n\t({d}) comparing - {any} vs. {any}", .{ index, digits[index], digits[index + 1] });
+                if (digits[index] > digits[index + 1]) {
                     std.debug.print("\n\t\tlarger, swapping", .{});
-                    // swap
-                    //std.debug.print("\n\t\tdigits[i] = {d}", .{digits[i]});
-                    const tmp: u8 = digits[i];
-                    const tmpb: u8 = digits[i+1];
-                    digits[i] = tmpb;
-                    digits[i + 1] = tmp;
-                    //digits[i] = digits[i + 1];
-                    //digits[i+1] = tmp;
-                    //const cp_dig = swap(u8, digits[0..], i, i+1);
-                    //std.debug.print("\n\t\tcp_dig list -> {any}", .{cp_dig});
-                    std.debug.print("\n\t\tdigits[i] = {d}", .{digits[i]});
-                    std.debug.print("\n\t\tdigits[i+1] = {d}", .{digits[i + 1]});
+                    std.mem.swap(u8, &(digits[index]), &(digits[index + 1]));
                     // set flag
                     swapped = true;
-                } 
+                }
                 std.debug.print("\n\t\tlist -> {any}", .{digits});
-                break;
             }
+            break;
         }
     } else {
         std.debug.print("\n\tsort in descending order", .{});
+        var swapped: bool = true;
+        while (swapped) {
+            swapped = false;
+            for (0..digits.len - 1) |index| {
+                std.debug.print("\n\t({d}) comparing - {any} vs. {any}", .{ index, digits[index], digits[index + 1] });
+                if (digits[index] < digits[index + 1]) {
+                    std.debug.print("\n\t\tsmaller, swapping", .{});
+                    // swap
+                    std.mem.swap(u8, &digits[index], &digits[index + 1]);
+                    // set flag
+                    swapped = true;
+                }
+                std.debug.print("\n\t\tlist -> {any}", .{digits});
+            }
+            break;
+        }
     }
 
-    std.debug.print("\n\t(end) -> {any}", .{digits});
-    return digits;
+    std.debug.print("\n\t(end) -> {any}\n", .{digits});
 }
 
 /// Takes two, four digit inputs and runs the algorithm
 /// until Kaprekar's Constant is obtained.
 pub fn kaprekar(a: []u8, b: []u8) bool {
-    std.debug.print("Kaprekar's Constant\n\tvalues passed are: {d} & {d}\n", .{ a[0..4], b[0..4] });
+    std.debug.print("\nKaprekar's Constant\n\tvalues passed are: {any} & {any}\n", .{ a, b });
 
     // sort a digits to descending
-    const asc: []u8 = bubbleSort(a[0..4], true);
+    //const asc: []u8 = bubbleSort(a[0..4], true);
+    bubbleSort(a[0..a.len], true);
     // sort b digits to descending
-    const desc: []u8 = b[0..4];
     //const desc: []u8 = bubbleSort(b[0..4], false);
+    bubbleSort(b[0..b.len], false);
 
-    kaprekar_iter(asc, desc);
+    kaprekar_iter(a, b);
 
     return true;
 }
@@ -161,7 +165,23 @@ fn kaprekar_iter(asc: []u8, desc: []u8) void {
     std.debug.print("starting state: {d}, {d}", .{ asc, desc });
 }
 
-const std = @import("std");
+/// Get a four digit number from standard input.
+/// DEPRACTED!!
+fn getFourDigitNum() !i16 {
+    // undefined means "unknown value", could be anything
+    // read only 5 characters -> xxxx\0
+    std.debug.print("Enter a four digit number [1000, 9999]:", .{});
+    var input: [5]u8 = undefined;
+    const stdout = std.io.getStdOut().writer();
+    const stdin = std.io.getStdIn().reader();
 
-/// This imports the separate module containing `root.zig`. Take a look in `build.zig` for details.
-const lib = @import("kaprekars_constant_lib");
+    _ = stdin.readUntilDelimiter(&input, '\n') catch |err| {
+        std.debug.print("[DESCRIPTION] please enter 4 digit number, [1000, 9999]\n", .{});
+        return err;
+    };
+
+    // below is the same as -> x catch |err| return err;
+    try stdout.print("The user entered: {s}\n", .{input});
+    // convert to integer
+    return try std.fmt.parseInt(i16, input[0..4], 0);
+}
