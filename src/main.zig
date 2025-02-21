@@ -19,6 +19,37 @@ test "bubble sort descending" {
     try std.testing.expect(std.mem.eql(u8, slice, output));
 }
 
+/// A pair of four digit numbers which will be used to calculate
+/// Kaprekar's Constant.
+const FourDigitPair = struct {
+    a: []u8,
+    b: []u8,
+
+    /// Allocate memory for struct and members on heap.
+    /// Return pointer to struct.
+    fn init(allocator: std.mem.Allocator) !*FourDigitPair {
+
+        // allocate memory for struct
+        const struct_ptr = try allocator.create(FourDigitPair);
+        // destroy in case of error
+        errdefer allocator.destroy(struct_ptr);
+
+        // allocate arrays, leave empty
+        struct_ptr.a = try allocator.alloc(u8, 4);
+        struct_ptr.b = try allocator.alloc(u8, 4);
+
+        return struct_ptr;
+    }
+
+    /// De-allocate memory to clean up
+    fn deinit(self: *FourDigitPair, allocator: std.mem.Allocator) !void {
+        allocator.free(self.a);
+        allocator.free(self.b);
+
+        allocator.free(self);
+    }
+};
+
 pub fn main() !void {
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
 
@@ -35,13 +66,20 @@ pub fn main() !void {
 
     //const int_a: i16 = try getFourDigitNum();
     //const int_b: i16 = try getFourDigitNum();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
 
-    const int_a: []u8 = try getFourDigitArr();
-    const int_b: []u8 = try getFourDigitArr();
-    std.debug.print("\n\tlist -> {any}", .{int_a});
-    std.debug.print("\n\tlist -> {any}", .{int_b});
+    // allocate memory for number buffers
+    const kpair = try FourDigitPair.init(arena.allocator());
+    _ = &kpair;
 
-    _ = kaprekar(int_a, int_b);
+    std.mem.copyForwards(u8, kpair.a, try getFourDigitArr());
+    std.mem.copyForwards(u8, kpair.b, try getFourDigitArr());
+
+    std.debug.print("\n\tlist -> {any}", .{kpair.a});
+    std.debug.print("\n\tlist -> {any}", .{kpair.b});
+
+    _ = kaprekar(kpair.a, kpair.b);
 }
 
 /// Get a four digit number from standard input.
@@ -119,7 +157,7 @@ pub fn bubbleSort(digits: []u8, ascending: bool) void {
                 }
                 std.debug.print("\n\t\tlist -> {any}", .{digits});
             }
-            break;
+            //break;
         }
     } else {
         std.debug.print("\n\tsort in descending order", .{});
@@ -137,7 +175,7 @@ pub fn bubbleSort(digits: []u8, ascending: bool) void {
                 }
                 std.debug.print("\n\t\tlist -> {any}", .{digits});
             }
-            break;
+            //break;
         }
     }
 
@@ -161,8 +199,26 @@ pub fn kaprekar(a: []u8, b: []u8) bool {
     return true;
 }
 
-fn kaprekar_iter(asc: []u8, desc: []u8) void {
-    std.debug.print("starting state: {d}, {d}", .{ asc, desc });
+fn kaprekar_iter(a: []u8, b: []u8) void {
+    std.debug.print("starting state: (ascending){d}, (descending){d}", .{ asc, desc });
+    const kaprekars_const = 6174;
+    var res = 0;
+
+    while (res != kaprekars_const){
+        // 1) sort a and b asc/desc
+        a = bubbleSort(a, true);
+        b = bubbleSort(b, false);
+
+        // 2) convert a/b to ints
+
+        // 3) res = a - b
+        res = a - b;
+
+        // 4) res to array of digits
+
+        // 5) copy res into a/b
+        std.mem.copyForwards(u8, a, res);
+    }
 }
 
 /// Get a four digit number from standard input.
