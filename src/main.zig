@@ -1,23 +1,7 @@
 const std = @import("std");
-
+const BubbleSort = @import("bubblesort.zig");
 /// This imports the separate module containing `root.zig`. Take a look in `build.zig` for details.
 const lib = @import("kaprekars_constant_lib");
-
-test "bubble sort ascending" {
-    var array = [_]u8{ 9, 2, 3, 7, 8, 1, 6, 5, 4 };
-    const slice = array[0..array.len];
-    const output = bubbleSort(slice, true);
-    std.debug.print("\n\t{any} vs. {any}", .{ slice, output });
-    try std.testing.expect(std.mem.eql(u8, slice, output));
-}
-
-test "bubble sort descending" {
-    var array = [_]u8{ 9, 2, 3, 7, 8, 1, 6, 5, 4 };
-    const slice = array[0..array.len];
-    const output = bubbleSort(slice, false);
-    std.debug.print("\n\t{any} vs. {any}", .{ slice, output });
-    try std.testing.expect(std.mem.eql(u8, slice, output));
-}
 
 /// A pair of four digit numbers which will be used to calculate
 /// Kaprekar's Constant.
@@ -73,13 +57,119 @@ pub fn main() !void {
     const kpair = try FourDigitPair.init(arena.allocator());
     _ = &kpair;
 
-    std.mem.copyForwards(u8, kpair.a, try getFourDigitArr());
-    std.mem.copyForwards(u8, kpair.b, try getFourDigitArr());
+    //std.mem.copyForwards(u8, kpair.a, try getFourDigitArr());
+    //std.mem.copyForwards(u8, kpair.b, try getFourDigitArr());
 
-    std.debug.print("\n\tlist -> {any}", .{kpair.a});
-    std.debug.print("\n\tlist -> {any}", .{kpair.b});
+    //std.debug.print("\n\tlist -> {any}", .{kpair.a});
+    //std.debug.print("\n\tlist -> {any}", .{kpair.b});
 
-    _ = kaprekar(kpair.a, kpair.b);
+    const initial_val = std.Random.intRangeAtMost(std.crypto.random, u16, 1000, 9999);
+    std.debug.print("\tseed = {d}\n", .{initial_val});
+
+    _ = kaprekar(initial_val);
+}
+
+/// Calculate Kaprekar's Constant... the simple and
+/// easy way, i.e., the right way.
+/// Takes a single integer, sorts into ascending and descending
+/// order, subtracts, then repeats until a  result of 6174 - K's Constant.
+fn kaprekar(n: u16) void {
+    var res: u64 = n;
+    const kc = 6174;
+    while (res != kc) {
+        // 1) sort asc & desc
+        // a) make buffer/array of digits
+        var buffer = [_]u8{ 0, 0, 0, 0 };
+        _ = intToArray(res, &buffer);
+        // b) sort buffer to desc
+        _ = BubbleSort.bubbleSort(&buffer, false);
+        // c) buffer to int
+        const alpha = arrayToInt(&buffer);
+        // d) beta = alpha but reversed (ascending)
+        const beta = reverseInt(@truncate(alpha));
+
+        // 2) subtract
+        res = alpha - beta;
+        std.debug.print("\n\t{d}(alpha) - {d}(beta) = {d}", .{ alpha, beta, res });
+        // 3) repeat!
+    }
+
+    std.debug.print("\n\nKaprekar's Constant Solved -> res = {d} = kc = {d}\n\n", .{ res, kc });
+}
+
+/// Reverse an integer following the algorigthm from
+/// https://www.geeksforgeeks.org/write-a-program-to-reverse-digits-of-a-number/
+fn reverseInt(n: u16) u16 {
+    var reverse: u16 = 0;
+    var ns = n;
+    while (ns > 0) {
+        reverse = reverse * 10 + ns % 10;
+        ns = ns / 10;
+    }
+
+    //std.debug.print("\n\treversed: {d}", .{reverse});
+    return reverse;
+}
+
+/// Convert a four digit integer into a four
+/// digit array, unsorted.
+fn intToArray(n: u64, buffer: []u8) []u8 {
+    var tmp = n;
+    for (0..4) |index| {
+        buffer[3 - index] = @truncate(tmp % 10);
+        tmp = tmp / 10;
+    }
+    return buffer;
+}
+
+/// Convert an array of digits to an integer, assuming
+/// unsigned.
+fn arrayToInt(arr: []u8) u64 {
+    var val: u64 = 0;
+    const arrlen: u64 = arr.len - 1;
+
+    for (0..arr.len) |index| {
+        val += arr[index] * std.math.pow(u64, 10, arrlen - index);
+    }
+
+    return val;
+}
+
+/// A less elegant but effective way to convert a four character
+/// string to a four digit number.
+fn charArrayToInt(chars: *[5]u8) i16 {
+    var val: i16 = 0;
+    var count: i16 = chars.len - 2;
+    for (chars) |char| {
+        const elem: i16 = char - 48;
+        val += elem * std.math.pow(i16, 10, count);
+        std.debug.print("count={d}, elem={d}, val={d}\n", .{ count, elem, val });
+        count -= 1;
+
+        if (count < 0) break;
+    }
+    return val;
+}
+
+/// Get a four digit number from standard input.
+/// DEPRACTED!!
+fn getFourDigitNum() !i16 {
+    // undefined means "unknown value", could be anything
+    // read only 5 characters -> xxxx\0
+    std.debug.print("Enter a four digit number [1000, 9999]:", .{});
+    var input: [5]u8 = undefined;
+    const stdout = std.io.getStdOut().writer();
+    const stdin = std.io.getStdIn().reader();
+
+    _ = stdin.readUntilDelimiter(&input, '\n') catch |err| {
+        std.debug.print("[DESCRIPTION] please enter 4 digit number, [1000, 9999]\n", .{});
+        return err;
+    };
+
+    // below is the same as -> x catch |err| return err;
+    try stdout.print("The user entered: {s}\n", .{input});
+    // convert to integer
+    return try std.fmt.parseInt(i16, input[0..4], 0);
 }
 
 /// Get a four digit number from standard input.
@@ -109,22 +199,6 @@ fn getFourDigitArr() ![]u8 {
     return input[0 .. input.len - 1];
 }
 
-/// A less elegant but effective way to convert a four character
-/// string to a four digit number.
-fn charArrayToInt(chars: *[5]u8) i16 {
-    var val: i16 = 0;
-    var count: i16 = chars.len - 2;
-    for (chars) |char| {
-        const elem: i16 = char - 48;
-        val += elem * std.math.pow(i16, 10, count);
-        std.debug.print("count={d}, elem={d}, val={d}\n", .{ count, elem, val });
-        count -= 1;
-
-        if (count < 0) break;
-    }
-    return val;
-}
-
 /// Swaps two elements of a slice using generic types.
 pub fn swap(comptime T: type, list: *[]T, index_a: usize, index_b: usize) []T {
     std.debug.print("\n\tSWAP", .{});
@@ -137,107 +211,15 @@ pub fn swap(comptime T: type, list: *[]T, index_a: usize, index_b: usize) []T {
     return list;
 }
 
-/// Sorts a slice of digits into ascending or descending order using the
-/// bubble sort algorithm.
-pub fn bubbleSort(digits: []u8, ascending: bool) void {
-    std.debug.print("BUBBLE SORT \n\t(start, ascending={any}) -> {any}", .{ ascending, digits });
-    // copy input
-    if (ascending) {
-        std.debug.print("\n\tsort in ascending order", .{});
-        var swapped: bool = true;
-        while (swapped) {
-            swapped = false;
-            for (0..digits.len - 1) |index| {
-                std.debug.print("\n\t({d}) comparing - {any} vs. {any}", .{ index, digits[index], digits[index + 1] });
-                if (digits[index] > digits[index + 1]) {
-                    std.debug.print("\n\t\tlarger, swapping", .{});
-                    std.mem.swap(u8, &(digits[index]), &(digits[index + 1]));
-                    // set flag
-                    swapped = true;
-                }
-                std.debug.print("\n\t\tlist -> {any}", .{digits});
-            }
-            //break;
-        }
-    } else {
-        std.debug.print("\n\tsort in descending order", .{});
-        var swapped: bool = true;
-        while (swapped) {
-            swapped = false;
-            for (0..digits.len - 1) |index| {
-                std.debug.print("\n\t({d}) comparing - {any} vs. {any}", .{ index, digits[index], digits[index + 1] });
-                if (digits[index] < digits[index + 1]) {
-                    std.debug.print("\n\t\tsmaller, swapping", .{});
-                    // swap
-                    std.mem.swap(u8, &digits[index], &digits[index + 1]);
-                    // set flag
-                    swapped = true;
-                }
-                std.debug.print("\n\t\tlist -> {any}", .{digits});
-            }
-            //break;
-        }
-    }
+// Tests
 
-    std.debug.print("\n\t(end) -> {any}\n", .{digits});
+test "array to int expect 1003" {
+    var arr = [_]u8{ 1, 0, 0, 3 };
+    const val = arrayToInt(&arr);
+    try std.testing.expect(val == 1003);
 }
 
-/// Takes two, four digit inputs and runs the algorithm
-/// until Kaprekar's Constant is obtained.
-pub fn kaprekar(a: []u8, b: []u8) bool {
-    std.debug.print("\nKaprekar's Constant\n\tvalues passed are: {any} & {any}\n", .{ a, b });
-
-    // sort a digits to descending
-    //const asc: []u8 = bubbleSort(a[0..4], true);
-    bubbleSort(a[0..a.len], true);
-    // sort b digits to descending
-    //const desc: []u8 = bubbleSort(b[0..4], false);
-    bubbleSort(b[0..b.len], false);
-
-    kaprekar_iter(a, b);
-
-    return true;
-}
-
-fn kaprekar_iter(a: []u8, b: []u8) void {
-    std.debug.print("starting state: (ascending){d}, (descending){d}", .{ asc, desc });
-    const kaprekars_const = 6174;
-    var res = 0;
-
-    while (res != kaprekars_const){
-        // 1) sort a and b asc/desc
-        a = bubbleSort(a, true);
-        b = bubbleSort(b, false);
-
-        // 2) convert a/b to ints
-
-        // 3) res = a - b
-        res = a - b;
-
-        // 4) res to array of digits
-
-        // 5) copy res into a/b
-        std.mem.copyForwards(u8, a, res);
-    }
-}
-
-/// Get a four digit number from standard input.
-/// DEPRACTED!!
-fn getFourDigitNum() !i16 {
-    // undefined means "unknown value", could be anything
-    // read only 5 characters -> xxxx\0
-    std.debug.print("Enter a four digit number [1000, 9999]:", .{});
-    var input: [5]u8 = undefined;
-    const stdout = std.io.getStdOut().writer();
-    const stdin = std.io.getStdIn().reader();
-
-    _ = stdin.readUntilDelimiter(&input, '\n') catch |err| {
-        std.debug.print("[DESCRIPTION] please enter 4 digit number, [1000, 9999]\n", .{});
-        return err;
-    };
-
-    // below is the same as -> x catch |err| return err;
-    try stdout.print("The user entered: {s}\n", .{input});
-    // convert to integer
-    return try std.fmt.parseInt(i16, input[0..4], 0);
+test "reverse int 1234" {
+    const t = 1234;
+    try std.testing.expect(reverseInt(t) == 4321);
 }
